@@ -24,9 +24,15 @@ interface NavbarProps {
   onToggleSidebar: () => void;
   activeTab: string;
   onNavigate: (tab: string) => void;
+  onOpenAdminLogin?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onNavigate }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  onToggleSidebar,
+  activeTab,
+  onNavigate,
+  onOpenAdminLogin,
+}) => {
   const { user, role, logout, theme, toggleTheme } = useAuth();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -106,18 +112,41 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onNavigate }) =
 
         {/* Right side actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* User Role Badge */}
-          <div className="hidden sm:flex items-center">
+          {/* User Role Badge & Admin Switcher */}
+          <div className="flex items-center gap-2">
             {role === 'admin' ? (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 text-xs font-bold shadow-xs">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-                <span>Admin Authority</span>
-              </div>
+              <>
+                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 text-xs font-bold shadow-xs">
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Admin Authority</span>
+                </div>
+                <button
+                  onClick={() => {
+                    logout();
+                    onNavigate('dashboard');
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 text-xs font-bold transition-all shadow-xs"
+                  title="Switch to Student Dashboard View"
+                >
+                  <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
+                  <span className="hidden sm:inline">Student View</span>
+                </button>
+              </>
             ) : (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 text-xs font-bold shadow-xs">
-                <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Student</span>
-              </div>
+              <>
+                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 text-xs font-bold shadow-xs">
+                  <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Student</span>
+                </div>
+                <button
+                  onClick={onOpenAdminLogin ? onOpenAdminLogin : () => onNavigate('admin-panel')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  title="Log in to Admin Panel (suman12 / a@12)"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Admin Panel</span>
+                </button>
+              </>
             )}
           </div>
 

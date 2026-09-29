@@ -2,13 +2,13 @@
   "users": [
     {
       "id": "usr_admin_1",
-      "studentId": "suman01",
+      "studentId": "suman12",
       "name": "Suman Kumar (Poddar)",
       "email": "imsumanpoddar12@gmail.com",
       "role": "admin",
       "passwordHash": "a@12",
       "isActive": true,
-      "phone": "+1 (555) 019-2834",
+      "phone": "+91 98765 43210",
       "createdAt": "2024-01-01T08:00:00Z"
     },
     {
@@ -78,6 +78,23 @@
       "enrollmentYear": 2023,
       "createdAt": "2024-01-12T14:00:00Z",
       "isPublicOnLeaderboard": true
+    },
+    {
+      "id": "usr_stu_1790689459489",
+      "studentId": "STU2026005",
+      "name": "Aman Poddar",
+      "email": "stu2026005@student.studyprogress.edu",
+      "role": "student",
+      "course": "Bachelor of Technology (B.Tech)",
+      "branch": "Computer Science & Engineering",
+      "semester": 3,
+      "avatar": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "isActive": true,
+      "phone": "+91 91234 56789",
+      "enrollmentYear": 2026,
+      "createdAt": "2026-09-29T13:44:19.489Z",
+      "isPublicOnLeaderboard": true,
+      "passwordHash": "studentpass"
     }
   ],
   "subjects": [
@@ -520,7 +537,7 @@
       },
       "history": [
         {
-          "id": "bsh_init_1790688535134",
+          "id": "bsh_init_1790689459489",
           "studentId": "STU2026005",
           "date": "2026-09-29",
           "points": 50,
@@ -960,6 +977,15 @@
     }
   ],
   "notifications": [
+    {
+      "id": "notif_1790689459489",
+      "studentId": "STU2026005",
+      "title": "Welcome to StudyProgress!",
+      "message": "Your account (STU2026005) is ready. Start tracking your daily study tasks and boost score.",
+      "type": "system",
+      "isRead": false,
+      "createdAt": "2026-09-29T13:44:19.489Z"
+    },
     {
       "id": "notif_1790688535134",
       "studentId": "STU2026005",

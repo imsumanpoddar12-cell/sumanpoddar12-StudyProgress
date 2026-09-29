@@ -18,18 +18,49 @@ interface AuthContextType {
     branch?: string;
     course?: string;
     semester?: number;
+    avatar?: string;
+  }) => Promise<void>;
+  updateProfile: (data: {
+    avatar?: string;
+    name?: string;
+    phone?: string;
+    branch?: string;
+    semester?: number;
   }) => Promise<void>;
   logout: () => void;
   quickDemoLogin: (role: Role, studentId?: string) => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
+const DEFAULT_STUDENT: User = {
+  id: 'usr_stu_1',
+  studentId: 'STU2024001',
+  name: 'Alex Turner',
+  email: 'alex.turner@college.edu',
+  role: 'student',
+  course: 'Bachelor of Technology (B.Tech)',
+  branch: 'Computer Science & Engineering',
+  semester: 4,
+  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+  isActive: true,
+  phone: '+1 (555) 234-5678',
+  enrollmentYear: 2023,
+  createdAt: '2024-01-10T10:00:00Z',
+  isPublicOnLeaderboard: true,
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(authStorage.getUser());
-  const [token, setToken] = useState<string | null>(authStorage.getToken());
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<User | null>(() => {
+    const saved = authStorage.getUser();
+    return saved || DEFAULT_STUDENT;
+  });
+  const [token, setToken] = useState<string | null>(() => {
+    const saved = authStorage.getToken();
+    return saved || 'usr_stu_1';
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('studyprogress_theme') || localStorage.getItem('study_boost_theme');
     if (saved === 'dark' || saved === 'light') return saved;
@@ -53,24 +84,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUser = async () => {
     const curToken = authStorage.getToken();
     if (!curToken) {
-      setUser(null);
-      setIsLoading(false);
       return;
     }
     try {
       const res = await api.getMe();
-      setUser(res.user);
-      authStorage.setUser(res.user);
+      if (res && res.user) {
+        setUser(res.user);
+        authStorage.setUser(res.user);
+      }
     } catch {
-      // If token expired or invalid, keep cached or clear if 401
-      // but if offline, keep cached user
-    } finally {
-      setIsLoading(false);
+      // If token expired or offline, keep current user
     }
   };
 
   useEffect(() => {
-    refreshUser();
+    // If we have a saved token, verify it
+    if (authStorage.getToken()) {
+      refreshUser();
+    }
   }, []);
 
   const login = async (identifier: string, password: string, targetRole?: Role) => {
@@ -94,6 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     branch?: string;
     course?: string;
     semester?: number;
+    avatar?: string;
   }) => {
     setIsLoading(true);
     try {
@@ -107,11 +139,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateProfile = async (data: {
+    avatar?: string;
+    name?: string;
+    phone?: string;
+    branch?: string;
+    semester?: number;
+  }) => {
+    setIsLoading(true);
+    try {
+      const res = await api.updateProfile(data);
+      if (res && res.user) {
+        setUser(res.user);
+        authStorage.setUser(res.user);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const quickDemoLogin = async (targetRole: Role, studentId: string = 'STU2024001') => {
     setIsLoading(true);
     try {
       if (targetRole === 'admin') {
-        throw new Error('Admin authentication requires administrative password verification.');
+        const res = await api.login({ identifier: 'suman12', password: 'a@12', role: 'admin' });
+        authStorage.setToken(res.token);
+        authStorage.setUser(res.user);
+        setToken(res.token);
+        setUser(res.user);
+        return;
       }
       const identifier = studentId;
       const password = 'student123';
@@ -127,8 +183,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     authStorage.clear();
-    setToken(null);
-    setUser(null);
+    // Revert to direct-open default student experience
+    setToken('usr_stu_1');
+    setUser(DEFAULT_STUDENT);
   };
 
   return (
@@ -142,6 +199,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toggleTheme,
         login,
         register,
+        updateProfile,
         logout,
         quickDemoLogin,
         refreshUser,

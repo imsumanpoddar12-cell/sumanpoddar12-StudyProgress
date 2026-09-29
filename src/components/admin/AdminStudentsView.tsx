@@ -18,9 +18,13 @@ import {
   Award,
   Sparkles,
   ArrowRight,
+  BookOpen,
+  FileText,
+  Download,
+  Eye,
 } from 'lucide-react';
 import { api } from '../../services/api.ts';
-import type { User, MarkRecord } from '../../types/index.ts';
+import type { User, MarkRecord, NoteItem } from '../../types/index.ts';
 
 interface AdminStudentsViewProps {
   onNavigate?: (tab: string) => void;
@@ -40,6 +44,9 @@ export const AdminStudentsView: React.FC<AdminStudentsViewProps> = ({ onNavigate
   const [viewingStudent, setViewingStudent] = useState<User | null>(null);
   const [studentMarks, setStudentMarks] = useState<MarkRecord[]>([]);
   const [loadingMarks, setLoadingMarks] = useState<boolean>(false);
+  const [studentNotes, setStudentNotes] = useState<NoteItem[]>([]);
+  const [loadingNotes, setLoadingNotes] = useState<boolean>(false);
+  const [inspectingNote, setInspectingNote] = useState<NoteItem | null>(null);
 
   // Form states
   const [formName, setFormName] = useState<string>('');
@@ -74,15 +81,33 @@ export const AdminStudentsView: React.FC<AdminStudentsViewProps> = ({ onNavigate
   useEffect(() => {
     if (viewingStudent && (viewingStudent.studentId || viewingStudent.id)) {
       setLoadingMarks(true);
+      setLoadingNotes(true);
       const sid = viewingStudent.studentId || viewingStudent.id;
       api.getMarks({ studentId: sid })
         .then((res) => setStudentMarks(res.marks))
         .catch(console.error)
         .finally(() => setLoadingMarks(false));
+
+      api.getNotes({ studentId: sid })
+        .then((res) => setStudentNotes(res))
+        .catch(console.error)
+        .finally(() => setLoadingNotes(false));
     } else {
       setStudentMarks([]);
+      setStudentNotes([]);
     }
   }, [viewingStudent]);
+
+  const handleDownloadNote = (note: NoteItem) => {
+    const content = `StudyProgress Academic Document\nStudent: ${viewingStudent?.name || note.studentName} (${note.studentId})\nSubject: ${note.subjectName}\nTopic: ${note.topic}\nPages: ${note.pageCount}\nDate Uploaded: ${new Date(note.uploadDate).toLocaleDateString()}\nStatus: ${note.submissionStatus}\n\nDocument Summary & Content:\n${note.notesText || 'Handwritten study notes verified.'}`;
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = note.fileName.endsWith('.pdf') ? note.fileName.replace('.pdf', '_export.txt') : `${note.fileName}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -886,6 +911,72 @@ export const AdminStudentsView: React.FC<AdminStudentsViewProps> = ({ onNavigate
               </div>
             </div>
 
+            {/* Uploaded Study Notes & PDF Documents Section */}
+            <div className="mt-5">
+              <div className="flex items-center justify-between mb-2">
+                <h5 className="font-bold text-xs text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-indigo-600" />
+                  <span>Student Uploaded Study Notes &amp; PDF Documents</span>
+                </h5>
+                <span className="text-[11px] text-slate-400">
+                  {studentNotes.length} documents on file
+                </span>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden text-xs">
+                {loadingNotes ? (
+                  <div className="p-6 text-center text-slate-500">Loading student uploaded documents...</div>
+                ) : studentNotes.length === 0 ? (
+                  <div className="p-6 text-center text-slate-500">
+                    No study notes or PDF documents submitted yet by this student.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-60 overflow-y-auto">
+                    {studentNotes.map((note) => (
+                      <div
+                        key={note.id}
+                        className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 flex items-center justify-center shrink-0">
+                            <BookOpen className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-900 dark:text-white text-xs">{note.topic}</p>
+                            <p className="text-[11px] text-slate-500">
+                              {note.subjectName} • {note.pageCount} Pages • {new Date(note.uploadDate).toLocaleDateString()}
+                            </p>
+                            <span className="inline-block mt-0.5 text-[10px] font-mono text-slate-400">
+                              {note.fileName}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 self-end sm:self-center">
+                          <button
+                            type="button"
+                            onClick={() => setInspectingNote(note)}
+                            className="px-2.5 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold text-[11px] hover:bg-indigo-100 transition-colors flex items-center gap-1"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Preview</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadNote(note)}
+                            className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[11px] hover:bg-slate-200 transition-colors flex items-center gap-1"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Download</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="pt-5 mt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <button
                 type="button"
@@ -908,6 +999,63 @@ export const AdminStudentsView: React.FC<AdminStudentsViewProps> = ({ onNavigate
                   <span>Make Changes in Marks →</span>
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Note / PDF Document Preview Modal */}
+      {inspectingNote && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-indigo-600" />
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                  Document Preview: {inspectingNote.subjectName}
+                </h4>
+              </div>
+              <button
+                onClick={() => setInspectingNote(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="py-4 space-y-3 text-xs">
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                <p className="text-[10px] uppercase font-bold text-slate-400">Topic Studied</p>
+                <p className="font-extrabold text-sm text-slate-900 dark:text-white mt-0.5">{inspectingNote.topic}</p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  File: <span className="font-mono text-indigo-600 dark:text-indigo-400">{inspectingNote.fileName}</span> ({inspectingNote.pageCount} Pages Verified)
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Study Notes Content &amp; Summary</p>
+                <div className="p-3.5 rounded-2xl bg-slate-100/60 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 leading-relaxed max-h-48 overflow-y-auto whitespace-pre-wrap">
+                  {inspectingNote.notesText || 'Handwritten study notes verified. All derivations, formulas, and diagrams reviewed.'}
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setInspectingNote(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDownloadNote(inspectingNote)}
+                className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download Document</span>
+              </button>
             </div>
           </div>
         </div>

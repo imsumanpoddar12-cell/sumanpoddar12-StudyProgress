@@ -82,10 +82,23 @@ export const api = {
     branch?: string;
     course?: string;
     semester?: number;
+    avatar?: string;
   }) =>
     request<{ user: User; token: string; message: string }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(studentData),
+    }),
+
+  updateProfile: (data: {
+    avatar?: string;
+    name?: string;
+    phone?: string;
+    branch?: string;
+    semester?: number;
+  }) =>
+    request<{ success: boolean; user: User; message: string }>('/user/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
     }),
 
   login: (credentials: { identifier: string; password: string; role?: 'student' | 'admin' }) =>

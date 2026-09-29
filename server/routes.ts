@@ -62,7 +62,7 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
 // 1. AUTHENTICATION & STUDENT SIGN-UP
 // --------------------------------------------------------------------------
 apiRouter.post('/auth/register', (req: Request, res: Response) => {
-  const { name, email, phone, password, branch, course, semester } = req.body;
+  const { name, email, phone, password, branch, course, semester, avatar } = req.body;
 
   if (!name || typeof name !== 'string' || !name.trim()) {
     res.status(400).json({ error: 'Please enter your full name.' });
@@ -121,7 +121,7 @@ apiRouter.post('/auth/register', (req: Request, res: Response) => {
     course: course || 'Bachelor of Technology (B.Tech)',
     branch: branch || 'Computer Science & Engineering',
     semester: Number(semester) || 1,
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${studentId}`,
+    avatar: avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${studentId}`,
     isActive: true,
     phone: cleanPhone || '',
     enrollmentYear: currentYear,
@@ -206,9 +206,16 @@ apiRouter.post('/auth/login', (req: Request, res: Response) => {
 
   const users = db.get().users;
   const user = users.find((u) => {
+    // Admin specific ID / alias check
+    if (u.role === 'admin') {
+      const lower = cleanIdent.toLowerCase();
+      if (lower === 'suman12' || lower === 'suman01' || lower === 'admin' || lower === 'adm001') {
+        return true;
+      }
+    }
     // 1. Email check
     if (u.email && u.email.toLowerCase() === cleanIdent.toLowerCase()) return true;
-    // 2. Student ID check
+    // 2. Student ID / Admin ID check
     if (u.studentId && u.studentId.toUpperCase() === cleanIdent.toUpperCase()) return true;
     // 3. Phone check
     if (u.phone && rawIdentDigits.length >= 7) {
@@ -1261,6 +1268,32 @@ apiRouter.put('/user/leaderboard-visibility', requireAuth, (req: Request, res: R
     return;
   }
   res.json({ success: true, user: updatedUser });
+});
+
+// Student profile update (avatar photo, phone, branch, semester)
+apiRouter.put('/user/profile', requireAuth, (req: Request, res: Response) => {
+  const user: User = (req as any).user;
+  const { avatar, name, phone, branch, semester } = req.body;
+
+  let updatedUser: any = null;
+  db.update((data) => {
+    const u = data.users.find((usr) => usr.id === user.id || usr.studentId === user.studentId);
+    if (u) {
+      if (avatar) u.avatar = avatar;
+      if (name && typeof name === 'string' && name.trim()) u.name = name.trim();
+      if (phone !== undefined) u.phone = String(phone).trim();
+      if (branch) u.branch = branch;
+      if (semester) u.semester = Number(semester);
+      const { passwordHash, ...safe } = u;
+      updatedUser = safe;
+    }
+  });
+
+  if (!updatedUser) {
+    res.status(404).json({ error: 'User not found.' });
+    return;
+  }
+  res.json({ success: true, user: updatedUser, message: 'Profile updated successfully.' });
 });
 
 // Admin change password

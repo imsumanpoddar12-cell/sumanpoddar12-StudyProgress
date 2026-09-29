@@ -5,9 +5,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
-import { AuthView } from './components/AuthView.tsx';
 import { Navbar } from './components/Navbar.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
+import { AdminLoginModal } from './components/AdminLoginModal.tsx';
 
 // Student Views
 import { StudentDashboard } from './components/student/StudentDashboard.tsx';
@@ -25,20 +25,16 @@ import { CreatorView } from './components/CreatorView.tsx';
 import { Footer } from './components/Footer.tsx';
 
 // Admin Views
-import { AdminDashboard } from './components/admin/AdminDashboard.tsx';
 import { AdminStudentsView } from './components/admin/AdminStudentsView.tsx';
 import { AdminMarksView } from './components/admin/AdminMarksView.tsx';
 import { AdminDailySubmissionsView } from './components/admin/AdminDailySubmissionsView.tsx';
-import { AdminBoostScoresView } from './components/admin/AdminBoostScoresView.tsx';
-import { AdminWeeklyChallengesView } from './components/admin/AdminWeeklyChallengesView.tsx';
-import { AdminSubjectsView } from './components/admin/AdminSubjectsView.tsx';
-import { AdminAnalyticsView } from './components/admin/AdminAnalyticsView.tsx';
 import { AdminSettingsView } from './components/admin/AdminSettingsView.tsx';
 
 const MainAppContent: React.FC = () => {
   const { user, role, isLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [adminLoginModalOpen, setAdminLoginModalOpen] = useState<boolean>(false);
 
   // Sync activeTab when role changes
   useEffect(() => {
@@ -46,12 +42,24 @@ const MainAppContent: React.FC = () => {
       if (!activeTab.startsWith('admin-')) {
         setActiveTab('admin-students');
       }
-    } else if (role === 'student') {
+    } else {
       if (activeTab.startsWith('admin-')) {
         setActiveTab('dashboard');
       }
     }
   }, [role]);
+
+  const handleNavigate = (tab: string) => {
+    if (tab === 'admin-panel') {
+      if (role === 'admin') {
+        setActiveTab('admin-students');
+      } else {
+        setAdminLoginModalOpen(true);
+      }
+      return;
+    }
+    setActiveTab(tab);
+  };
 
   if (isLoading) {
     return (
@@ -62,10 +70,6 @@ const MainAppContent: React.FC = () => {
     );
   }
 
-  if (!user) {
-    return <AuthView />;
-  }
-
   const renderContent = () => {
     if (role === 'admin') {
       switch (activeTab) {
@@ -73,6 +77,8 @@ const MainAppContent: React.FC = () => {
           return <AdminStudentsView onNavigate={setActiveTab} />;
         case 'admin-marks':
           return <AdminMarksView />;
+        case 'admin-submissions':
+          return <AdminDailySubmissionsView />;
         case 'admin-settings':
           return <AdminSettingsView />;
         case 'admin-creator':
@@ -83,23 +89,23 @@ const MainAppContent: React.FC = () => {
     } else {
       switch (activeTab) {
         case 'dashboard':
-          return <StudentDashboard onNavigate={setActiveTab} />;
+          return <StudentDashboard onNavigate={handleNavigate} />;
         case 'marks':
-          return <PreviousMarksView onNavigate={setActiveTab} />;
+          return <PreviousMarksView onNavigate={handleNavigate} />;
         case 'how-to-boost':
-          return <HowToBoostView onNavigate={setActiveTab} />;
+          return <HowToBoostView onNavigate={handleNavigate} />;
         case 'daily-task':
-          return <DailyTaskView onNavigate={setActiveTab} />;
+          return <DailyTaskView onNavigate={handleNavigate} />;
         case 'notes':
-          return <MyNotesView onNavigate={setActiveTab} />;
+          return <MyNotesView onNavigate={handleNavigate} />;
         case 'leaderboard':
           return <LeaderboardView />;
         case 'weekly-challenge':
-          return <WeeklyChallengeView onNavigate={setActiveTab} />;
+          return <WeeklyChallengeView onNavigate={handleNavigate} />;
         case 'progress':
-          return <ProgressView onNavigate={setActiveTab} />;
+          return <ProgressView onNavigate={handleNavigate} />;
         case 'boost-score':
-          return <BoostScoreView onNavigate={setActiveTab} />;
+          return <BoostScoreView onNavigate={handleNavigate} />;
         case 'notifications':
           return <NotificationsView />;
         case 'profile':
@@ -107,7 +113,7 @@ const MainAppContent: React.FC = () => {
         case 'creator':
           return <CreatorView />;
         default:
-          return <StudentDashboard onNavigate={setActiveTab} />;
+          return <StudentDashboard onNavigate={handleNavigate} />;
       }
     }
   };
@@ -118,7 +124,8 @@ const MainAppContent: React.FC = () => {
       <Navbar
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         activeTab={activeTab}
-        onNavigate={setActiveTab}
+        onNavigate={handleNavigate}
+        onOpenAdminLogin={() => setAdminLoginModalOpen(true)}
       />
 
       <div className="flex flex-1 relative">
@@ -127,7 +134,8 @@ const MainAppContent: React.FC = () => {
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           activeTab={activeTab}
-          onNavigate={setActiveTab}
+          onNavigate={handleNavigate}
+          onOpenAdminLogin={() => setAdminLoginModalOpen(true)}
         />
 
         {/* Main Content Area */}
@@ -140,6 +148,13 @@ const MainAppContent: React.FC = () => {
           />
         </main>
       </div>
+
+      {/* Admin Login Modal (Triggered by menu or navbar) */}
+      <AdminLoginModal
+        isOpen={adminLoginModalOpen}
+        onClose={() => setAdminLoginModalOpen(false)}
+        onSuccess={() => setActiveTab('admin-students')}
+      />
     </div>
   );
 };

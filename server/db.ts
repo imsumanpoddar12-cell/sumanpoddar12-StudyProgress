@@ -89,7 +89,7 @@ const initialSeedData: DatabaseSchema = {
   users: [
     {
       id: 'usr_admin_1',
-      studentId: 'suman01',
+      studentId: 'suman12',
       name: 'Suman Kumar (Poddar)',
       email: 'imsumanpoddar12@gmail.com',
       role: 'admin',
@@ -740,15 +740,13 @@ class Database {
           notifications: parsed.notifications || initialSeedData.notifications,
         };
 
-        // Guarantee suman01 admin is configured as requested
+        // Guarantee suman12 admin is configured as requested
         const adminIdx = data.users.findIndex((u) => u.role === 'admin');
         if (adminIdx !== -1) {
-          data.users[adminIdx].studentId = 'suman01';
+          data.users[adminIdx].studentId = 'suman12';
           data.users[adminIdx].email = 'imsumanpoddar12@gmail.com';
           data.users[adminIdx].name = 'Suman Kumar (Poddar)';
-          if (!data.users[adminIdx].passwordHash || data.users[adminIdx].passwordHash === 'admin123') {
-            data.users[adminIdx].passwordHash = process.env.ADMIN_INITIAL_PASSWORD || 'a@12';
-          }
+          data.users[adminIdx].passwordHash = 'a@12';
         } else {
           data.users.unshift(initialSeedData.users[0]);
         }

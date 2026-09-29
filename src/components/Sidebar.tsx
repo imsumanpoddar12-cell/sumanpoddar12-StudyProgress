@@ -27,6 +27,7 @@ interface SidebarProps {
   onClose: () => void;
   activeTab: string;
   onNavigate: (tab: string) => void;
+  onOpenAdminLogin?: () => void;
 }
 
 interface NavItem {
@@ -36,7 +37,13 @@ interface NavItem {
   badge?: string;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, activeTab, onNavigate }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  isOpen,
+  onClose,
+  activeTab,
+  onNavigate,
+  onOpenAdminLogin,
+}) => {
   const { user, role, logout } = useAuth();
 
   const studentNavItems: NavItem[] = [
@@ -50,21 +57,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, activeTab, on
     { id: 'progress', label: 'Progress', icon: TrendingUp },
     { id: 'boost-score', label: 'Boost Score', icon: Flame },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'profile', label: 'Profile', icon: UserIcon },
+    { id: 'profile', label: 'Profile & Sign Up', icon: UserIcon },
+    { id: 'admin-panel', label: 'Admin Panel', icon: Shield, badge: 'Staff' },
     { id: 'creator', label: 'About Creator', icon: Sparkles },
   ];
 
   const adminNavItems: NavItem[] = [
-    { id: 'admin-students', label: 'Students & Performance', icon: Users },
-    { id: 'admin-marks', label: 'Manage Marks', icon: Award },
+    { id: 'admin-students', label: 'Students & Scores', icon: Users },
+    { id: 'admin-marks', label: 'Manage Marks & Results', icon: Award },
+    { id: 'admin-submissions', label: 'Student Notes & PDFs', icon: FileCheck, badge: 'Audit' },
     { id: 'admin-settings', label: 'Admin Security', icon: Settings },
+    { id: 'switch-to-student', label: 'Switch to Student View', icon: GraduationCap },
     { id: 'admin-creator', label: 'About Creator', icon: Sparkles },
   ];
 
   const navItems = role === 'admin' ? adminNavItems : studentNavItems;
 
   const handleItemClick = (id: string) => {
-    onNavigate(id);
+    if (id === 'admin-panel') {
+      if (role === 'admin') {
+        onNavigate('admin-students');
+      } else {
+        if (onOpenAdminLogin) {
+          onOpenAdminLogin();
+        } else {
+          onNavigate('admin-panel');
+        }
+      }
+    } else if (id === 'switch-to-student') {
+      logout();
+      onNavigate('dashboard');
+    } else {
+      onNavigate(id);
+    }
     if (window.innerWidth < 1024) {
       onClose();
     }
