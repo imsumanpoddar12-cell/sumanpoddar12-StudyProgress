@@ -1,0 +1,8 @@
+{
+  "name": "StudyProgress",
+  "description": "StudyProgress - Comprehensive college student study progress tracking, previous marks analytics, daily note submission validation, streak counter, and Boost Score management platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
