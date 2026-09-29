@@ -10,8 +10,8 @@ interface AdminLoginModalProps {
 
 export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const { login } = useAuth();
-  const [adminId, setAdminId] = useState<string>('suman12');
-  const [password, setPassword] = useState<string>('a@12');
+  const [adminId, setAdminId] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,12 +34,6 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillDefaultCredentials = () => {
-    setAdminId('suman12');
-    setPassword('a@12');
-    setError(null);
   };
 
   return (
@@ -84,7 +78,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
                 required
                 value={adminId}
                 onChange={(e) => setAdminId(e.target.value)}
-                placeholder="e.g. suman12"
+                placeholder="Enter Admin ID or Email"
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
               />
             </div>
@@ -101,7 +95,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter admin password"
+                placeholder="Enter Password"
                 className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all font-mono"
               />
               <button
@@ -112,23 +106,6 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-          </div>
-
-          {/* Quick Helper Badge */}
-          <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 flex items-center justify-between text-xs">
-            <div>
-              <p className="font-bold text-amber-900 dark:text-amber-200 text-[11px]">Default Admin Credentials</p>
-              <p className="text-[10px] text-amber-700 dark:text-amber-300 font-mono mt-0.5">
-                ID: <strong>suman12</strong> | Pass: <strong>a@12</strong>
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={fillDefaultCredentials}
-              className="px-2.5 py-1 text-[10px] font-bold text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/60 hover:bg-amber-200 rounded-lg transition-colors"
-            >
-              Fill Credentials
-            </button>
           </div>
 
           <div className="pt-2 flex items-center justify-end gap-2.5">
@@ -142,7 +119,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-md shadow-amber-600/20 disabled:opacity-50 transition-all flex items-center gap-1.5"
+              className="px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-md shadow-amber-600/20 disabled:opacity-50 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               {loading ? (
                 <>

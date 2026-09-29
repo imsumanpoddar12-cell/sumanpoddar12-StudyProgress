@@ -66,6 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'admin-students', label: 'Students & Scores', icon: Users },
     { id: 'admin-marks', label: 'Manage Marks & Results', icon: Award },
     { id: 'admin-submissions', label: 'Student Notes & PDFs', icon: FileCheck, badge: 'Audit' },
+    { id: 'admin-subjects', label: 'Curriculum Subjects', icon: BookOpen },
     { id: 'admin-settings', label: 'Admin Security', icon: Settings },
     { id: 'switch-to-student', label: 'Switch to Student View', icon: GraduationCap },
     { id: 'admin-creator', label: 'About Creator', icon: Sparkles },

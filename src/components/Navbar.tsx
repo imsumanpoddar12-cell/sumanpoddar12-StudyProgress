@@ -141,7 +141,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   onClick={onOpenAdminLogin ? onOpenAdminLogin : () => onNavigate('admin-panel')}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 text-xs font-bold transition-all shadow-xs cursor-pointer"
-                  title="Log in to Admin Panel (suman12 / a@12)"
+                  title="Admin Portal Access"
                 >
                   <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
                   <span>Admin Panel</span>

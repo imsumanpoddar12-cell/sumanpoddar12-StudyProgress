@@ -30,8 +30,8 @@ export const AuthView: React.FC = () => {
   const [studentMode, setStudentMode] = useState<'signin' | 'signup'>('signin');
 
   // Sign In states
-  const [identifier, setIdentifier] = useState<string>('STU2024001');
-  const [password, setPassword] = useState<string>('student123');
+  const [identifier, setIdentifier] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
   const [rememberMe, setRememberMe] = useState<boolean>(true);
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
@@ -60,10 +60,10 @@ export const AuthView: React.FC = () => {
     setErrorMessage(null);
     setSuccessMessage(null);
     if (tab === 'student') {
-      setIdentifier('STU2024001');
-      setPassword('student123');
+      setIdentifier('');
+      setPassword('');
     } else {
-      setIdentifier('suman01');
+      setIdentifier('');
       setPassword('');
       setStudentMode('signin');
     }
@@ -267,7 +267,7 @@ export const AuthView: React.FC = () => {
               <div className="mb-5 p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/60 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
                 <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold">Administrator Authentication:</span> Admin ID <code className="bg-amber-200/60 dark:bg-amber-900/80 px-1 py-0.5 rounded font-mono font-bold">suman01</code> or <code className="bg-amber-200/60 dark:bg-amber-900/80 px-1 py-0.5 rounded font-mono font-bold">imsumanpoddar12@gmail.com</code>. Enter your administrator password.
+                  <span className="font-bold">Administrator Authentication:</span> Enter your official administrator credentials and secure password to access administrative controls.
                 </div>
               </div>
             )}

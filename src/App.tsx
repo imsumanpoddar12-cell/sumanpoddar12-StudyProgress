@@ -28,6 +28,7 @@ import { Footer } from './components/Footer.tsx';
 import { AdminStudentsView } from './components/admin/AdminStudentsView.tsx';
 import { AdminMarksView } from './components/admin/AdminMarksView.tsx';
 import { AdminDailySubmissionsView } from './components/admin/AdminDailySubmissionsView.tsx';
+import { AdminSubjectsView } from './components/admin/AdminSubjectsView.tsx';
 import { AdminSettingsView } from './components/admin/AdminSettingsView.tsx';
 
 const MainAppContent: React.FC = () => {
@@ -79,6 +80,8 @@ const MainAppContent: React.FC = () => {
           return <AdminMarksView />;
         case 'admin-submissions':
           return <AdminDailySubmissionsView />;
+        case 'admin-subjects':
+          return <AdminSubjectsView />;
         case 'admin-settings':
           return <AdminSettingsView />;
         case 'admin-creator':

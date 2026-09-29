@@ -46,8 +46,31 @@ export interface Subject {
   code: string;
   name: string;
   credits: number;
-  facultyName: string;
+  facultyName?: string;
   description?: string;
+  studentId?: string;
+  priority?: 'High' | 'Medium' | 'Low';
+  weeklyTargetHours?: number;
+  semester?: number;
+  color?: string;
+}
+
+export type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
+
+export interface RoutineSlot {
+  id: string;
+  studentId: string;
+  dayOfWeek: DayOfWeek;
+  subjectId: string;
+  subjectName: string;
+  topic: string;
+  startTime: string; // e.g. "18:00"
+  endTime: string;   // e.g. "20:00"
+  studyTarget?: string;
+  notesRequirementPages: number; // default 3
+  priority: 'High' | 'Medium' | 'Low';
+  deadlineHoursAfterEnd: number; // default 3
+  createdAt: string;
 }
 
 export interface MarkRecord {
@@ -77,7 +100,7 @@ export interface DailyTask {
   studyDuration: number; // in minutes
   learningSummary: string; // What I learned today
   remarks?: string;
-  pageCount: number; // minimum 3-4 pages required
+  pageCount: number; // minimum 3 pages required
   noteFiles: {
     id: string;
     fileName: string;
@@ -86,11 +109,19 @@ export interface DailyTask {
     url: string;
     pageCount: number;
   }[];
-  status: 'COMPLETED' | 'PENDING';
+  status: 'COMPLETED' | 'PENDING' | 'MISSED';
   pendingReason?: string;
   boostPointsAwarded: number;
   submittedAt: string;
   verifiedByAdmin?: boolean;
+  // Routine & deadline enhancements
+  routineSlotId?: string;
+  scheduledStartTime?: string;
+  scheduledEndTime?: string;
+  uploadDeadline?: string;
+  isMissed?: boolean;
+  penaltyApplied?: boolean;
+  penaltyOverridden?: boolean;
 }
 
 export interface NoteItem {

@@ -11,6 +11,7 @@ import type {
   StreakData,
   WeeklyChallenge,
   NotificationItem,
+  RoutineSlot,
 } from '../src/types/index.ts';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -28,6 +29,7 @@ export interface DatabaseSchema {
   streaks: Record<string, StreakData>;
   challenges: WeeklyChallenge[];
   notifications: NotificationItem[];
+  routines: Record<string, RoutineSlot[]>;
 }
 
 export function calculateSuccessPercentage(score: number): number {
@@ -705,6 +707,85 @@ const initialSeedData: DatabaseSchema = {
       createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
     },
   ],
+  routines: {
+    STU2024001: [
+      {
+        id: 'rout_1',
+        studentId: 'STU2024001',
+        dayOfWeek: 'Monday',
+        subjectId: 'sub_math',
+        subjectName: 'Mathematics',
+        topic: 'Multivariable Calculus & Double Integrals',
+        startTime: '18:00',
+        endTime: '20:00',
+        studyTarget: 'Complete 5 practice problems and formula derivation',
+        notesRequirementPages: 3,
+        priority: 'High',
+        deadlineHoursAfterEnd: 3,
+        createdAt: '2024-01-10T10:00:00Z',
+      },
+      {
+        id: 'rout_2',
+        studentId: 'STU2024001',
+        dayOfWeek: 'Tuesday',
+        subjectId: 'sub_chem',
+        subjectName: 'Applied Chemistry',
+        topic: 'Thermodynamics & Reaction Kinetics',
+        startTime: '18:00',
+        endTime: '20:00',
+        studyTarget: 'Summarize Gibbs Free Energy equations and standard state reactions',
+        notesRequirementPages: 3,
+        priority: 'Medium',
+        deadlineHoursAfterEnd: 3,
+        createdAt: '2024-01-10T10:00:00Z',
+      },
+      {
+        id: 'rout_3',
+        studentId: 'STU2024001',
+        dayOfWeek: 'Wednesday',
+        subjectId: 'sub_prog',
+        subjectName: 'Programming',
+        topic: 'AVL Trees & Dynamic Programming',
+        startTime: '19:00',
+        endTime: '21:00',
+        studyTarget: 'Implement balanced tree rotations and time complexity breakdown',
+        notesRequirementPages: 3,
+        priority: 'High',
+        deadlineHoursAfterEnd: 3,
+        createdAt: '2024-01-10T10:00:00Z',
+      },
+      {
+        id: 'rout_4',
+        studentId: 'STU2024001',
+        dayOfWeek: 'Thursday',
+        subjectId: 'sub_elec',
+        subjectName: 'Electronics',
+        topic: 'Operational Amplifiers & Frequency Response',
+        startTime: '18:00',
+        endTime: '20:00',
+        studyTarget: 'Draw clean circuit schematics and derive inverting gain formula',
+        notesRequirementPages: 3,
+        priority: 'Medium',
+        deadlineHoursAfterEnd: 3,
+        createdAt: '2024-01-10T10:00:00Z',
+      },
+      {
+        id: 'rout_5',
+        studentId: 'STU2024001',
+        dayOfWeek: 'Friday',
+        subjectId: 'sub_mech',
+        subjectName: 'Mechanics',
+        topic: 'Friction Analysis & Moment of Inertia',
+        startTime: '17:00',
+        endTime: '19:00',
+        studyTarget: 'Review 3 statics problems and free body diagrams',
+        notesRequirementPages: 3,
+        priority: 'Low',
+        deadlineHoursAfterEnd: 3,
+        createdAt: '2024-01-10T10:00:00Z',
+      },
+    ],
+  },
 };
 
 class Database {
@@ -738,6 +819,7 @@ class Database {
           streaks: parsed.streaks || initialSeedData.streaks,
           challenges: parsed.challenges || initialSeedData.challenges,
           notifications: parsed.notifications || initialSeedData.notifications,
+          routines: parsed.routines || initialSeedData.routines,
         };
 
         // Guarantee suman12 admin is configured as requested

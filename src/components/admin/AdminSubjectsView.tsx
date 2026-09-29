@@ -55,7 +55,7 @@ export const AdminSubjectsView: React.FC = () => {
     setCode(sub.code);
     setName(sub.name);
     setCredits(sub.credits);
-    setFacultyName(sub.facultyName);
+    setFacultyName(sub.facultyName || '');
     setDescription(sub.description || '');
     setShowModal(true);
   };

@@ -5,6 +5,7 @@ import { db, getMilestoneInfo, calculateSuccessPercentage } from './db.ts';
 import type {
   User,
   Subject,
+  RoutineSlot,
   MarkRecord,
   DailyTask,
   NoteItem,
@@ -62,15 +63,22 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
 // 1. AUTHENTICATION & STUDENT SIGN-UP
 // --------------------------------------------------------------------------
 apiRouter.post('/auth/register', (req: Request, res: Response) => {
-  const { name, email, phone, password, branch, course, semester, avatar } = req.body;
+  const { name, studentId: customStudentId, email, phone, password, confirmPassword, branch, course, semester, avatar } = req.body;
 
   if (!name || typeof name !== 'string' || !name.trim()) {
     res.status(400).json({ error: 'Please enter your full name.' });
     return;
   }
 
-  if (!password || typeof password !== 'string' || password.trim().length < 4) {
-    res.status(400).json({ error: 'Password must be at least 4 characters long.' });
+  // Password confirmation check
+  if (confirmPassword && password !== confirmPassword) {
+    res.status(400).json({ error: 'Passwords do not match. Please verify your password confirmation.' });
+    return;
+  }
+
+  // Weak password check
+  if (!password || typeof password !== 'string' || password.trim().length < 6) {
+    res.status(400).json({ error: 'Weak password. Password must be at least 6 characters long.' });
     return;
   }
 
@@ -78,15 +86,30 @@ apiRouter.post('/auth/register', (req: Request, res: Response) => {
   const cleanEmail = email ? String(email).trim().toLowerCase() : '';
 
   if (!cleanPhone && !cleanEmail) {
-    res.status(400).json({ error: 'Please provide either a phone number or an email to sign up.' });
+    res.status(400).json({ error: 'Please provide either a mobile phone number or an email address to create an account.' });
+    return;
+  }
+
+  // Email format validation
+  if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    res.status(400).json({ error: 'Invalid email address format.' });
     return;
   }
 
   const state = db.get();
 
+  // Check custom student ID uniqueness if provided
+  if (customStudentId && typeof customStudentId === 'string' && customStudentId.trim()) {
+    const upperId = customStudentId.trim().toUpperCase();
+    if (state.users.some((u) => u.studentId && u.studentId.toUpperCase() === upperId)) {
+      res.status(400).json({ error: 'An account already exists with this Student ID. Please log in.' });
+      return;
+    }
+  }
+
   // Check email uniqueness if email provided
   if (cleanEmail && state.users.some((u) => u.email && u.email.toLowerCase() === cleanEmail)) {
-    res.status(400).json({ error: 'An account with this email address already exists. Please log in.' });
+    res.status(400).json({ error: 'An account already exists with this email address. Please log in.' });
     return;
   }
 
@@ -100,7 +123,7 @@ apiRouter.post('/auth/register', (req: Request, res: Response) => {
         return uDigits.length >= 7 && (uDigits === rawDigits || uDigits.endsWith(rawDigits) || rawDigits.endsWith(uDigits));
       });
       if (phoneExists) {
-        res.status(400).json({ error: 'An account with this mobile phone number already exists. Please log in.' });
+        res.status(400).json({ error: 'An account already exists with this mobile phone number. Please log in.' });
         return;
       }
     }
@@ -108,9 +131,19 @@ apiRouter.post('/auth/register', (req: Request, res: Response) => {
 
   const currentYear = new Date().getFullYear();
   const nextNum = state.users.filter((u) => u.role === 'student').length + 1;
-  const studentId = `STU${currentYear}${String(nextNum).padStart(3, '0')}`;
+  const studentId = customStudentId && customStudentId.trim()
+    ? customStudentId.trim().toUpperCase()
+    : `STU${currentYear}${String(nextNum).padStart(3, '0')}`;
   const newUserId = `usr_stu_${Date.now()}`;
   const finalEmail = cleanEmail || `${studentId.toLowerCase()}@student.studyprogress.edu`;
+
+  // Avatar format check (data URL or valid image URL)
+  let validAvatar = avatar;
+  if (avatar && typeof avatar === 'string') {
+    if (!avatar.startsWith('data:image/') && !avatar.startsWith('http')) {
+      validAvatar = undefined;
+    }
+  }
 
   const newStudent: User & { passwordHash: string } = {
     id: newUserId,
@@ -121,7 +154,7 @@ apiRouter.post('/auth/register', (req: Request, res: Response) => {
     course: course || 'Bachelor of Technology (B.Tech)',
     branch: branch || 'Computer Science & Engineering',
     semester: Number(semester) || 1,
-    avatar: avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${studentId}`,
+    avatar: validAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${studentId}`,
     isActive: true,
     phone: cleanPhone || '',
     enrollmentYear: currentYear,
@@ -261,26 +294,86 @@ apiRouter.post('/auth/login', (req: Request, res: Response) => {
 
 apiRouter.post('/auth/forgot-password', (req: Request, res: Response) => {
   const { identifier } = req.body;
-  if (!identifier) {
-    res.status(400).json({ error: 'Please provide your Student ID or Email.' });
+  if (!identifier || typeof identifier !== 'string' || !identifier.trim()) {
+    res.status(400).json({ error: 'Please enter your Student ID or Email.' });
     return;
   }
 
+  const cleanId = identifier.trim().toLowerCase();
   const users = db.get().users;
   const user = users.find(
     (u) =>
-      u.email.toLowerCase() === identifier.trim().toLowerCase() ||
-      (u.studentId && u.studentId.toUpperCase() === identifier.trim().toUpperCase())
+      (u.email && u.email.toLowerCase() === cleanId) ||
+      (u.studentId && u.studentId.toLowerCase() === cleanId)
   );
 
   if (!user) {
-    res.status(404).json({ error: 'No account found matching this identifier.' });
+    res.status(404).json({ error: 'Account not found. Please verify your Student ID or Email.' });
     return;
   }
 
   res.json({
     success: true,
-    message: `Password reset instructions have been dispatched to registered email ${user.email}. (Demo reset code: 749201). Default password for testing: student123`,
+    studentId: user.studentId,
+    email: user.email,
+    name: user.name,
+    message: `Account verified for ${user.name} (${user.studentId}). You may now reset your password.`,
+  });
+});
+
+apiRouter.post('/auth/reset-password', (req: Request, res: Response) => {
+  const { identifier, newPassword, confirmPassword } = req.body;
+
+  if (!identifier || typeof identifier !== 'string' || !identifier.trim()) {
+    res.status(400).json({ error: 'Please provide your Student ID or Email.' });
+    return;
+  }
+
+  if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 6) {
+    res.status(400).json({ error: 'Weak password. Password must be at least 6 characters long.' });
+    return;
+  }
+
+  if (confirmPassword && newPassword !== confirmPassword) {
+    res.status(400).json({ error: 'Passwords do not match. Please ensure both passwords match.' });
+    return;
+  }
+
+  const cleanId = identifier.trim().toLowerCase();
+  let updatedUser: User | null = null;
+
+  db.update((data) => {
+    const user = data.users.find(
+      (u) =>
+        (u.email && u.email.toLowerCase() === cleanId) ||
+        (u.studentId && u.studentId.toLowerCase() === cleanId)
+    );
+    if (user) {
+      user.passwordHash = newPassword.trim();
+      const { passwordHash, ...safe } = user;
+      updatedUser = safe;
+
+      // Add security notification
+      data.notifications.unshift({
+        id: `notif_${Date.now()}_pwd`,
+        studentId: user.studentId || user.id,
+        title: 'Password Updated Successfully 🔐',
+        message: 'Your account password was updated. If you did not make this request, contact administration.',
+        type: 'system',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  });
+
+  if (!updatedUser) {
+    res.status(404).json({ error: 'Account not found. Please verify your Student ID or Email.' });
+    return;
+  }
+
+  res.json({
+    success: true,
+    message: 'Password reset successful! You can now log in with your new password.',
   });
 });
 
@@ -496,26 +589,53 @@ apiRouter.post('/students/:id/reset-password', requireAdmin, (req: Request, res:
 });
 
 // --------------------------------------------------------------------------
-// 3. SUBJECTS
+// 3. SUBJECTS (Student Personal & Global University Curriculum)
 // --------------------------------------------------------------------------
-apiRouter.get('/subjects', (_req: Request, res: Response) => {
-  res.json(db.get().subjects);
+apiRouter.get('/subjects', (req: Request, res: Response) => {
+  const user = getAuthUser(req);
+  const { semester, studentId } = req.query;
+  const state = db.get();
+
+  let subjects = state.subjects;
+
+  if (user && user.role === 'student') {
+    const sid = user.studentId || user.id;
+    // Return global subjects + student's own custom subjects
+    subjects = subjects.filter((s) => !s.studentId || s.studentId === sid);
+  } else if (studentId) {
+    subjects = subjects.filter((s) => !s.studentId || s.studentId === studentId);
+  }
+
+  if (semester) {
+    subjects = subjects.filter((s) => !s.semester || s.semester === Number(semester));
+  }
+
+  res.json(subjects);
 });
 
-apiRouter.post('/subjects', requireAdmin, (req: Request, res: Response) => {
-  const { code, name, credits, facultyName, description } = req.body;
-  if (!code || !name) {
-    res.status(400).json({ error: 'Subject code and name are required.' });
+apiRouter.post('/subjects', requireAuth, (req: Request, res: Response) => {
+  const user: User = (req as any).user;
+  const { code, name, credits, facultyName, description, priority, weeklyTargetHours, semester, color } = req.body;
+
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    res.status(400).json({ error: 'Subject name is required.' });
     return;
   }
 
+  const generatedCode = (code && code.trim()) ? code.trim().toUpperCase() : name.trim().slice(0, 4).toUpperCase() + Math.floor(100 + Math.random() * 900);
+
   const newSubject: Subject = {
     id: `sub_${Date.now()}`,
-    code: code.trim().toUpperCase(),
+    code: generatedCode,
     name: name.trim(),
     credits: Number(credits) || 3,
-    facultyName: facultyName || 'Faculty Assigned',
+    facultyName: facultyName || (user.role === 'student' ? 'Self-Directed / Faculty' : 'Faculty Assigned'),
     description: description || '',
+    studentId: user.role === 'student' ? (user.studentId || user.id) : undefined,
+    priority: (priority as any) || 'Medium',
+    weeklyTargetHours: Number(weeklyTargetHours) || 4,
+    semester: Number(semester) || user.semester || 1,
+    color: color || '#4F46E5',
   };
 
   db.update((data) => {
@@ -525,14 +645,19 @@ apiRouter.post('/subjects', requireAdmin, (req: Request, res: Response) => {
   res.status(201).json(newSubject);
 });
 
-apiRouter.put('/subjects/:id', requireAdmin, (req: Request, res: Response) => {
+apiRouter.put('/subjects/:id', requireAuth, (req: Request, res: Response) => {
+  const user: User = (req as any).user;
   const { id } = req.params;
-  const { code, name, credits, facultyName, description } = req.body;
+  const { code, name, credits, facultyName, description, priority, weeklyTargetHours, semester, color } = req.body;
 
   let updated: Subject | null = null;
   db.update((data) => {
     const idx = data.subjects.findIndex((s) => s.id === id);
     if (idx !== -1) {
+      // Permission check: if student, must be their custom subject
+      if (user.role === 'student' && data.subjects[idx].studentId && data.subjects[idx].studentId !== (user.studentId || user.id)) {
+        return;
+      }
       data.subjects[idx] = {
         ...data.subjects[idx],
         code: code !== undefined ? code.toUpperCase() : data.subjects[idx].code,
@@ -540,24 +665,351 @@ apiRouter.put('/subjects/:id', requireAdmin, (req: Request, res: Response) => {
         credits: credits !== undefined ? Number(credits) : data.subjects[idx].credits,
         facultyName: facultyName !== undefined ? facultyName : data.subjects[idx].facultyName,
         description: description !== undefined ? description : data.subjects[idx].description,
+        priority: priority !== undefined ? priority : data.subjects[idx].priority,
+        weeklyTargetHours: weeklyTargetHours !== undefined ? Number(weeklyTargetHours) : data.subjects[idx].weeklyTargetHours,
+        semester: semester !== undefined ? Number(semester) : data.subjects[idx].semester,
+        color: color !== undefined ? color : data.subjects[idx].color,
       };
       updated = data.subjects[idx];
     }
   });
 
   if (!updated) {
-    res.status(404).json({ error: 'Subject not found.' });
+    res.status(404).json({ error: 'Subject not found or unauthorized to edit.' });
     return;
   }
   res.json(updated);
 });
 
-apiRouter.delete('/subjects/:id', requireAdmin, (req: Request, res: Response) => {
+apiRouter.delete('/subjects/:id', requireAuth, (req: Request, res: Response) => {
+  const user: User = (req as any).user;
   const { id } = req.params;
+
+  let removed = false;
   db.update((data) => {
+    const sub = data.subjects.find((s) => s.id === id);
+    if (!sub) return;
+
+    if (user.role === 'student' && sub.studentId && sub.studentId !== (user.studentId || user.id)) {
+      return;
+    }
+
     data.subjects = data.subjects.filter((s) => s.id !== id);
+    removed = true;
   });
+
+  if (!removed) {
+    res.status(404).json({ error: 'Subject not found or cannot be deleted.' });
+    return;
+  }
+
   res.json({ message: 'Subject removed successfully.' });
+});
+
+// --------------------------------------------------------------------------
+// 3.5. MAKE YOUR ROUTINE & DEADLINE ENGINE
+// --------------------------------------------------------------------------
+function evaluateRoutineDeadlines(studentId: string) {
+  const state = db.get();
+  const studentRoutines = state.routines[studentId] || [];
+  if (studentRoutines.length === 0) return;
+
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
+  const now = new Date();
+  const todayDay = days[now.getDay()];
+  const todayStr = now.toISOString().split('T')[0];
+
+  const todaySlots = studentRoutines.filter((s) => s.dayOfWeek === todayDay);
+  if (todaySlots.length === 0) return;
+
+  db.update((data) => {
+    if (!data.boostScores[studentId]) return;
+    const scoreData = data.boostScores[studentId];
+
+    todaySlots.forEach((slot) => {
+      // Find existing task for this student, today, and this slot
+      let existingTask = data.dailyTasks.find(
+        (t) => t.studentId === studentId && t.date === todayStr && (t.routineSlotId === slot.id || t.subjectId === slot.subjectId)
+      );
+
+      // Parse end time to calculate deadline (End Time + 3 Hours)
+      const [endH, endM] = slot.endTime.split(':').map(Number);
+      const deadlineDate = new Date();
+      deadlineDate.setHours(endH + (slot.deadlineHoursAfterEnd || 3), endM || 0, 0, 0);
+
+      const deadlineIso = deadlineDate.toISOString();
+      const isPastDeadline = now.getTime() > deadlineDate.getTime();
+
+      if (!existingTask) {
+        // Create scheduled task for today
+        const newTask: DailyTask = {
+          id: `task_rout_${Date.now()}_${slot.id}`,
+          studentId,
+          date: todayStr,
+          subjectId: slot.subjectId,
+          subjectName: slot.subjectName,
+          topic: slot.topic || `Scheduled study session: ${slot.subjectName}`,
+          studyDuration: 120,
+          learningSummary: '',
+          remarks: `Routine slot: ${slot.startTime} – ${slot.endTime}`,
+          pageCount: 0,
+          noteFiles: [],
+          status: isPastDeadline ? 'MISSED' : 'PENDING',
+          pendingReason: isPastDeadline ? `Today's ${slot.subjectName} task was not completed before the deadline. -8 points.` : `Scheduled study: ${slot.startTime} – ${slot.endTime}. Notes deadline: 3 hours after end.`,
+          boostPointsAwarded: 0,
+          submittedAt: now.toISOString(),
+          verifiedByAdmin: false,
+          routineSlotId: slot.id,
+          scheduledStartTime: slot.startTime,
+          scheduledEndTime: slot.endTime,
+          uploadDeadline: deadlineIso,
+          isMissed: isPastDeadline,
+          penaltyApplied: isPastDeadline,
+        };
+
+        if (isPastDeadline) {
+          // Apply -8 points penalty
+          scoreData.currentScore = Math.max(0, scoreData.currentScore - 8);
+          scoreData.history.unshift({
+            id: `bsh_pen_${Date.now()}`,
+            studentId,
+            date: todayStr,
+            points: -8,
+            reason: `Today's ${slot.subjectName} task was not completed before the deadline. -8 points.`,
+            category: 'admin_adjustment',
+          });
+
+          data.notifications.unshift({
+            id: `notif_missed_${Date.now()}`,
+            studentId,
+            title: `Task Missed: ${slot.subjectName} (-8 pts) ⚠️`,
+            message: `Today's ${slot.subjectName} task was not completed before the deadline. -8 points.`,
+            type: 'task_pending',
+            isRead: false,
+            createdAt: now.toISOString(),
+          });
+        }
+
+        data.dailyTasks.unshift(newTask);
+      } else {
+        // Task already exists: if still pending and past deadline, mark missed
+        if (existingTask.status === 'PENDING' && existingTask.pageCount < 3 && isPastDeadline && !existingTask.penaltyApplied) {
+          existingTask.status = 'MISSED';
+          existingTask.isMissed = true;
+          existingTask.penaltyApplied = true;
+          existingTask.pendingReason = `Today's ${existingTask.subjectName} task was not completed before the deadline. -8 points.`;
+
+          scoreData.currentScore = Math.max(0, scoreData.currentScore - 8);
+          scoreData.history.unshift({
+            id: `bsh_pen_${Date.now()}`,
+            studentId,
+            date: todayStr,
+            points: -8,
+            reason: `Today's ${existingTask.subjectName} task was not completed before the deadline. -8 points.`,
+            category: 'admin_adjustment',
+          });
+
+          data.notifications.unshift({
+            id: `notif_missed_${Date.now()}`,
+            studentId,
+            title: `Task Missed: ${existingTask.subjectName} (-8 pts) ⚠️`,
+            message: `Today's ${existingTask.subjectName} task was not completed before the deadline. -8 points.`,
+            type: 'task_pending',
+            isRead: false,
+            createdAt: now.toISOString(),
+          });
+        }
+      }
+    });
+  });
+}
+
+apiRouter.get('/routine', requireAuth, (req: Request, res: Response) => {
+  const user: User = (req as any).user;
+  const targetStudentId = (req.query.studentId as string) || user.studentId || user.id;
+
+  // Run routine deadline evaluator
+  evaluateRoutineDeadlines(targetStudentId);
+
+  const state = db.get();
+  const routines = state.routines[targetStudentId] || [];
+
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
+  const now = new Date();
+  const todayDay = days[now.getDay()];
+  const todaySlots = routines.filter((r) => r.dayOfWeek === todayDay);
+
+  // Compute active countdown for today's sessions
+  let activeDeadline: any = null;
+  todaySlots.forEach((slot) => {
+    const [endH, endM] = slot.endTime.split(':').map(Number);
+    const deadlineDate = new Date();
+    deadlineDate.setHours(endH + (slot.deadlineHoursAfterEnd || 3), endM || 0, 0, 0);
+
+    const diffMs = deadlineDate.getTime() - now.getTime();
+    const remainingMinutes = Math.max(0, Math.floor(diffMs / 60000));
+    const hours = Math.floor(remainingMinutes / 60);
+    const mins = remainingMinutes % 60;
+
+    const todayStr = now.toISOString().split('T')[0];
+    const task = state.dailyTasks.find((t) => t.studentId === targetStudentId && t.date === todayStr && t.routineSlotId === slot.id);
+    const isCompleted = task && task.status === 'COMPLETED';
+
+    if (!activeDeadline || (diffMs > 0 && !isCompleted)) {
+      activeDeadline = {
+        slotId: slot.id,
+        subjectName: slot.subjectName,
+        topic: slot.topic,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        deadlineIso: deadlineDate.toISOString(),
+        deadlineText: `${deadlineDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+        remainingText: `${hours}h ${mins}m remaining`,
+        remainingMinutes,
+        isCompleted: Boolean(isCompleted),
+        isMissed: diffMs <= 0 && !isCompleted,
+        penaltyApplied: task?.penaltyApplied || false,
+      };
+    }
+  });
+
+  res.json({
+    routines,
+    todaySlots,
+    activeDeadline,
+  });
+});
+
+apiRouter.post('/routine', requireAuth, (req: Request, res: Response) => {
+  const user: User = (req as any).user;
+  const studentId = user.studentId || user.id;
+
+  const { dayOfWeek, subjectId, subjectName, topic, startTime, endTime, studyTarget, notesRequirementPages, priority, deadlineHoursAfterEnd } = req.body;
+
+  if (!dayOfWeek || !subjectName || !startTime || !endTime) {
+    res.status(400).json({ error: 'Day of week, subject, start time and end time are required.' });
+    return;
+  }
+
+  const newSlot: RoutineSlot = {
+    id: `rout_${Date.now()}`,
+    studentId,
+    dayOfWeek,
+    subjectId: subjectId || `sub_${Date.now()}`,
+    subjectName: subjectName.trim(),
+    topic: (topic || '').trim(),
+    startTime: startTime.trim(),
+    endTime: endTime.trim(),
+    studyTarget: (studyTarget || '').trim(),
+    notesRequirementPages: Number(notesRequirementPages) || 3,
+    priority: priority || 'Medium',
+    deadlineHoursAfterEnd: Number(deadlineHoursAfterEnd) || 3,
+    createdAt: new Date().toISOString(),
+  };
+
+  db.update((data) => {
+    if (!data.routines[studentId]) {
+      data.routines[studentId] = [];
+    }
+    data.routines[studentId].push(newSlot);
+  });
+
+  res.status(201).json(newSlot);
+});
+
+apiRouter.put('/routine/:id', requireAuth, (req: Request, res: Response) => {
+  const user: User = (req as any).user;
+  const studentId = user.studentId || user.id;
+  const { id } = req.params;
+  const updates = req.body;
+
+  let updated: RoutineSlot | null = null;
+  db.update((data) => {
+    const list = data.routines[studentId] || [];
+    const idx = list.findIndex((r) => r.id === id);
+    if (idx !== -1) {
+      list[idx] = {
+        ...list[idx],
+        ...updates,
+      };
+      updated = list[idx];
+    }
+  });
+
+  if (!updated) {
+    res.status(404).json({ error: 'Routine slot not found.' });
+    return;
+  }
+  res.json(updated);
+});
+
+apiRouter.delete('/routine/:id', requireAuth, (req: Request, res: Response) => {
+  const user: User = (req as any).user;
+  const studentId = user.studentId || user.id;
+  const { id } = req.params;
+
+  let deleted = false;
+  db.update((data) => {
+    if (data.routines[studentId]) {
+      data.routines[studentId] = data.routines[studentId].filter((r) => r.id !== id);
+      deleted = true;
+    }
+  });
+
+  if (!deleted) {
+    res.status(404).json({ error: 'Routine slot not found.' });
+    return;
+  }
+
+  res.json({ message: 'Routine slot removed.' });
+});
+
+// Admin penalty override
+apiRouter.post('/daily-tasks/:id/override-penalty', requireAdmin, (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  let modifiedTask: DailyTask | null = null;
+  db.update((data) => {
+    const task = data.dailyTasks.find((t) => t.id === id);
+    if (task && task.penaltyApplied && !task.penaltyOverridden) {
+      task.penaltyOverridden = true;
+      task.status = 'PENDING';
+      task.pendingReason = 'Penalty reviewed and forgiven by Administrator.';
+
+      // Restore 8 points to student
+      const scoreObj = data.boostScores[task.studentId];
+      if (scoreObj) {
+        scoreObj.currentScore = Math.min(1000, scoreObj.currentScore + 8);
+        scoreObj.history.unshift({
+          id: `bsh_over_${Date.now()}`,
+          studentId: task.studentId,
+          date: new Date().toISOString().split('T')[0],
+          points: 8,
+          reason: `Admin Penalty Override: +8 points restored for ${task.subjectName}`,
+          category: 'admin_adjustment',
+        });
+      }
+
+      data.notifications.unshift({
+        id: `notif_over_${Date.now()}`,
+        studentId: task.studentId,
+        title: 'Missed Task Penalty Forgiven ✓',
+        message: `Administrator reviewed your penalty for ${task.subjectName}. +8 Boost Points have been restored.`,
+        type: 'score_boost',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      });
+
+      modifiedTask = task;
+    }
+  });
+
+  if (!modifiedTask) {
+    res.status(400).json({ error: 'Task not found or penalty was not applied/already overridden.' });
+    return;
+  }
+
+  res.json({ task: modifiedTask, message: 'Penalty overridden successfully. +8 points restored.' });
 });
 
 // --------------------------------------------------------------------------
