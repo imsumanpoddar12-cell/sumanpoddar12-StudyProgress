@@ -1,5 +1,15 @@
 export type Role = 'student' | 'admin';
 
+export interface StudentPerformanceSummary {
+  boostScore: number;
+  streak: number;
+  marksCount: number;
+  totalObtained: number;
+  totalMax: number;
+  overallPercentage: number;
+  successPercentage: number;
+}
+
 export interface User {
   id: string;
   studentId?: string; // e.g. STU2024001 (for student) or ADM001
@@ -15,6 +25,7 @@ export interface User {
   phone?: string;
   enrollmentYear?: number;
   createdAt: string;
+  performance?: StudentPerformanceSummary;
 }
 
 export interface LeaderboardEntry {

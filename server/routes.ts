@@ -59,30 +59,174 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
 }
 
 // --------------------------------------------------------------------------
-// 1. AUTHENTICATION
+// 1. AUTHENTICATION & STUDENT SIGN-UP
 // --------------------------------------------------------------------------
-apiRouter.post('/auth/login', (req: Request, res: Response) => {
-  const { identifier, password, role } = req.body; // identifier = studentId or email
-  if (!identifier || !password) {
-    res.status(400).json({ error: 'Please enter your ID/Email and password.' });
+apiRouter.post('/auth/register', (req: Request, res: Response) => {
+  const { name, email, phone, password, branch, course, semester } = req.body;
+
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    res.status(400).json({ error: 'Please enter your full name.' });
     return;
   }
 
+  if (!password || typeof password !== 'string' || password.trim().length < 4) {
+    res.status(400).json({ error: 'Password must be at least 4 characters long.' });
+    return;
+  }
+
+  const cleanPhone = phone ? String(phone).trim() : '';
+  const cleanEmail = email ? String(email).trim().toLowerCase() : '';
+
+  if (!cleanPhone && !cleanEmail) {
+    res.status(400).json({ error: 'Please provide either a phone number or an email to sign up.' });
+    return;
+  }
+
+  const state = db.get();
+
+  // Check email uniqueness if email provided
+  if (cleanEmail && state.users.some((u) => u.email && u.email.toLowerCase() === cleanEmail)) {
+    res.status(400).json({ error: 'An account with this email address already exists. Please log in.' });
+    return;
+  }
+
+  // Check phone uniqueness if phone provided
+  if (cleanPhone) {
+    const rawDigits = cleanPhone.replace(/\D/g, '');
+    if (rawDigits.length >= 7) {
+      const phoneExists = state.users.some((u) => {
+        if (!u.phone) return false;
+        const uDigits = u.phone.replace(/\D/g, '');
+        return uDigits.length >= 7 && (uDigits === rawDigits || uDigits.endsWith(rawDigits) || rawDigits.endsWith(uDigits));
+      });
+      if (phoneExists) {
+        res.status(400).json({ error: 'An account with this mobile phone number already exists. Please log in.' });
+        return;
+      }
+    }
+  }
+
+  const currentYear = new Date().getFullYear();
+  const nextNum = state.users.filter((u) => u.role === 'student').length + 1;
+  const studentId = `STU${currentYear}${String(nextNum).padStart(3, '0')}`;
+  const newUserId = `usr_stu_${Date.now()}`;
+  const finalEmail = cleanEmail || `${studentId.toLowerCase()}@student.studyprogress.edu`;
+
+  const newStudent: User & { passwordHash: string } = {
+    id: newUserId,
+    studentId,
+    name: name.trim(),
+    email: finalEmail,
+    role: 'student',
+    course: course || 'Bachelor of Technology (B.Tech)',
+    branch: branch || 'Computer Science & Engineering',
+    semester: Number(semester) || 1,
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${studentId}`,
+    isActive: true,
+    phone: cleanPhone || '',
+    enrollmentYear: currentYear,
+    createdAt: new Date().toISOString(),
+    isPublicOnLeaderboard: true,
+    passwordHash: password.trim(),
+  };
+
+  db.update((data) => {
+    data.users.push(newStudent);
+    // Initialize Boost score with 50 welcome points
+    data.boostScores[studentId] = {
+      studentId,
+      currentScore: 50,
+      pointsToday: 0,
+      pointsThisWeek: 50,
+      currentMilestone: 'Getting Started',
+      nextMilestone: {
+        points: 250,
+        title: 'Bronze Scholar',
+        remaining: 200,
+      },
+      history: [
+        {
+          id: `bsh_init_${Date.now()}`,
+          studentId,
+          date: new Date().toISOString().split('T')[0],
+          points: 50,
+          reason: 'Welcome bonus on portal registration!',
+          category: 'admin_adjustment',
+        },
+      ],
+    };
+
+    // Initialize streak with Day 1
+    data.streaks[studentId] = {
+      studentId,
+      currentStreak: 1,
+      longestStreak: 1,
+      totalCompletedDays: 1,
+      missedDays: 0,
+      lastCompletedDate: new Date().toISOString().split('T')[0],
+      calendar: [
+        {
+          date: new Date().toISOString().split('T')[0],
+          status: 'completed',
+          studyDuration: 45,
+          subjectName: 'Orientation',
+        },
+      ],
+    };
+
+    // Welcome notification
+    data.notifications.unshift({
+      id: `notif_${Date.now()}`,
+      studentId,
+      title: 'Welcome to StudyProgress!',
+      message: `Your account (${studentId}) is ready. Start tracking your daily study tasks and boost score.`,
+      type: 'system',
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    });
+  });
+
+  const { passwordHash: _, ...safeStudent } = newStudent;
+  res.status(201).json({
+    user: safeStudent,
+    token: newStudent.id,
+    message: `Account created successfully! Welcome to StudyProgress, ${safeStudent.name}.`,
+  });
+});
+
+apiRouter.post('/auth/login', (req: Request, res: Response) => {
+  const { identifier, password, role } = req.body; // identifier = phone, studentId or email
+  if (!identifier || !password) {
+    res.status(400).json({ error: 'Please enter your Phone/Email/ID and password.' });
+    return;
+  }
+
+  const cleanIdent = String(identifier).trim();
+  const rawIdentDigits = cleanIdent.replace(/\D/g, '');
+
   const users = db.get().users;
   const user = users.find((u) => {
-    const matchId =
-      u.email.toLowerCase() === identifier.trim().toLowerCase() ||
-      (u.studentId && u.studentId.toUpperCase() === identifier.trim().toUpperCase());
-    return matchId;
+    // 1. Email check
+    if (u.email && u.email.toLowerCase() === cleanIdent.toLowerCase()) return true;
+    // 2. Student ID check
+    if (u.studentId && u.studentId.toUpperCase() === cleanIdent.toUpperCase()) return true;
+    // 3. Phone check
+    if (u.phone && rawIdentDigits.length >= 7) {
+      const uDigits = u.phone.replace(/\D/g, '');
+      if (uDigits === rawIdentDigits || uDigits.endsWith(rawIdentDigits) || rawIdentDigits.endsWith(uDigits)) {
+        return true;
+      }
+    }
+    return false;
   });
 
   if (!user) {
-    res.status(401).json({ error: 'Invalid credentials. User not found.' });
+    res.status(401).json({ error: 'Invalid credentials. No account found matching this Phone, Email, or ID.' });
     return;
   }
 
   if (!user.isActive) {
-    res.status(403).json({ error: 'Account disabled. Please contact your college administrator.' });
+    res.status(403).json({ error: 'Account disabled. Please contact your administrator.' });
     return;
   }
 
@@ -164,7 +308,37 @@ apiRouter.get('/students', requireAdmin, (req: Request, res: Response) => {
     students = students.filter((s) => s.semester === Number(semester));
   }
 
-  const safeStudents = students.map(({ passwordHash, ...s }) => s);
+  const state = db.get();
+  const safeStudents = students.map(({ passwordHash, ...s }) => {
+    const studentId = s.studentId || s.id;
+    const boost = state.boostScores[studentId];
+    const streak = state.streaks[studentId];
+    const studentMarks = state.marks.filter((m) => m.studentId === studentId);
+    const totalObtained = studentMarks.reduce((sum, m) => sum + m.marksObtained, 0);
+    const totalMax = studentMarks.reduce((sum, m) => sum + m.maximumMarks, 0);
+    const overallPercentage = totalMax > 0 ? Number(((totalObtained / totalMax) * 100).toFixed(1)) : 0;
+    const boostScore = boost ? boost.currentScore : 50;
+    const successPercentage = Math.min(
+      100,
+      Math.max(
+        0,
+        Math.round((totalMax > 0 ? (totalObtained / totalMax) * 100 : 70) * 0.6 + (Math.min(boostScore, 1000) / 1000) * 100 * 0.4)
+      )
+    );
+
+    return {
+      ...s,
+      performance: {
+        boostScore,
+        streak: streak ? streak.currentStreak : 0,
+        marksCount: studentMarks.length,
+        totalObtained,
+        totalMax,
+        overallPercentage,
+        successPercentage,
+      },
+    };
+  });
   res.json(safeStudents);
 });
 

@@ -74,6 +74,20 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
 export const api = {
   // Auth
+  register: (studentData: {
+    name: string;
+    email?: string;
+    phone?: string;
+    password: string;
+    branch?: string;
+    course?: string;
+    semester?: number;
+  }) =>
+    request<{ user: User; token: string; message: string }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(studentData),
+    }),
+
   login: (credentials: { identifier: string; password: string; role?: 'student' | 'admin' }) =>
     request<{ user: User; token: string; message: string }>('/auth/login', {
       method: 'POST',

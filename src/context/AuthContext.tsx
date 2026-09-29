@@ -10,6 +10,15 @@ interface AuthContextType {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   login: (identifier: string, password: string, role?: Role) => Promise<void>;
+  register: (studentData: {
+    name: string;
+    email?: string;
+    phone?: string;
+    password: string;
+    branch?: string;
+    course?: string;
+    semester?: number;
+  }) => Promise<void>;
   logout: () => void;
   quickDemoLogin: (role: Role, studentId?: string) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -77,6 +86,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const register = async (studentData: {
+    name: string;
+    email?: string;
+    phone?: string;
+    password: string;
+    branch?: string;
+    course?: string;
+    semester?: number;
+  }) => {
+    setIsLoading(true);
+    try {
+      const res = await api.register(studentData);
+      authStorage.setToken(res.token);
+      authStorage.setUser(res.user);
+      setToken(res.token);
+      setUser(res.user);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const quickDemoLogin = async (targetRole: Role, studentId: string = 'STU2024001') => {
     setIsLoading(true);
     try {
@@ -111,6 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         theme,
         toggleTheme,
         login,
+        register,
         logout,
         quickDemoLogin,
         refreshUser,

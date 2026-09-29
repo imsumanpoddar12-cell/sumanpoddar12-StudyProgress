@@ -44,7 +44,7 @@ const MainAppContent: React.FC = () => {
   useEffect(() => {
     if (role === 'admin') {
       if (!activeTab.startsWith('admin-')) {
-        setActiveTab('admin-dashboard');
+        setActiveTab('admin-students');
       }
     } else if (role === 'student') {
       if (activeTab.startsWith('admin-')) {
@@ -69,32 +69,16 @@ const MainAppContent: React.FC = () => {
   const renderContent = () => {
     if (role === 'admin') {
       switch (activeTab) {
-        case 'admin-dashboard':
-          return <AdminDashboard onNavigate={setActiveTab} />;
         case 'admin-students':
-          return <AdminStudentsView />;
+          return <AdminStudentsView onNavigate={setActiveTab} />;
         case 'admin-marks':
           return <AdminMarksView />;
-        case 'admin-submissions':
-          return <AdminDailySubmissionsView />;
-        case 'admin-notes':
-          return <MyNotesView onNavigate={setActiveTab} />;
-        case 'admin-leaderboard':
-          return <LeaderboardView />;
-        case 'admin-boost-scores':
-          return <AdminBoostScoresView />;
-        case 'admin-challenges':
-          return <AdminWeeklyChallengesView />;
-        case 'admin-subjects':
-          return <AdminSubjectsView />;
-        case 'admin-analytics':
-          return <AdminAnalyticsView />;
         case 'admin-settings':
           return <AdminSettingsView />;
         case 'admin-creator':
           return <CreatorView />;
         default:
-          return <AdminDashboard onNavigate={setActiveTab} />;
+          return <AdminStudentsView onNavigate={setActiveTab} />;
       }
     } else {
       switch (activeTab) {

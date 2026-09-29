@@ -138,14 +138,14 @@
       "subjectName": "Mathematics",
       "subjectCode": "MATH201",
       "examType": "Semester End Exam",
-      "marksObtained": 54,
+      "marksObtained": 88,
       "maximumMarks": 100,
-      "percentage": 54,
-      "status": "Needs Attention",
+      "percentage": 88,
+      "status": "Distinction",
       "examDate": "2026-05-15",
       "academicYear": "2025-2026",
       "semester": 3,
-      "remarks": "Needs dedicated daily problem solving in Multivariable Calculus."
+      "remarks": "Outstanding marks improvement updated by admin"
     },
     {
       "id": "mrk_2",
@@ -506,6 +506,28 @@
       "history": [],
       "currentSuccessPercentage": 51,
       "successTrend": 4
+    },
+    "STU2026005": {
+      "studentId": "STU2026005",
+      "currentScore": 50,
+      "pointsToday": 0,
+      "pointsThisWeek": 50,
+      "currentMilestone": "Getting Started",
+      "nextMilestone": {
+        "points": 250,
+        "title": "Bronze Scholar",
+        "remaining": 200
+      },
+      "history": [
+        {
+          "id": "bsh_init_1790688535134",
+          "studentId": "STU2026005",
+          "date": "2026-09-29",
+          "points": 50,
+          "reason": "Welcome bonus on portal registration!",
+          "category": "admin_adjustment"
+        }
+      ]
     }
   },
   "streaks": {
@@ -860,6 +882,22 @@
           "subjectName": "Mathematics"
         }
       ]
+    },
+    "STU2026005": {
+      "studentId": "STU2026005",
+      "currentStreak": 1,
+      "longestStreak": 1,
+      "totalCompletedDays": 1,
+      "missedDays": 0,
+      "lastCompletedDate": "2026-09-29",
+      "calendar": [
+        {
+          "date": "2026-09-29",
+          "status": "completed",
+          "studyDuration": 45,
+          "subjectName": "Orientation"
+        }
+      ]
     }
   },
   "challenges": [
@@ -922,6 +960,15 @@
     }
   ],
   "notifications": [
+    {
+      "id": "notif_1790688535134",
+      "studentId": "STU2026005",
+      "title": "Welcome to StudyProgress!",
+      "message": "Your account (STU2026005) is ready. Start tracking your daily study tasks and boost score.",
+      "type": "system",
+      "isRead": false,
+      "createdAt": "2026-09-29T13:28:55.134Z"
+    },
     {
       "id": "notif_1",
       "studentId": "STU2024001",

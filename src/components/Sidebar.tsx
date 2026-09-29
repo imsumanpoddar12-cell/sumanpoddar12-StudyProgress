@@ -55,17 +55,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, activeTab, on
   ];
 
   const adminNavItems: NavItem[] = [
-    { id: 'admin-dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'admin-students', label: 'Students', icon: Users },
-    { id: 'admin-marks', label: 'Marks', icon: Award },
-    { id: 'admin-submissions', label: 'Daily Submissions', icon: FileCheck },
-    { id: 'admin-notes', label: 'Notes', icon: BookOpen },
-    { id: 'admin-leaderboard', label: 'Leaderboard', icon: Trophy, badge: 'Public' },
-    { id: 'admin-boost-scores', label: 'Boost Scores', icon: Flame },
-    { id: 'admin-challenges', label: 'Weekly Challenges', icon: Award },
-    { id: 'admin-subjects', label: 'Subjects', icon: BookMarked },
-    { id: 'admin-analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'admin-settings', label: 'Settings', icon: Settings },
+    { id: 'admin-students', label: 'Students & Performance', icon: Users },
+    { id: 'admin-marks', label: 'Manage Marks', icon: Award },
+    { id: 'admin-settings', label: 'Admin Security', icon: Settings },
     { id: 'admin-creator', label: 'About Creator', icon: Sparkles },
   ];
 
